@@ -1,9 +1,7 @@
 from django.contrib import admin
 from django.urls import path
-from prueba.views import tu_vista
-
+from accounts.views import AccountInfo
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('mi-vista/', tu_vista, name='mi_vista'),
-
+    path('api/accounts/info/', AccountInfo.as_view(), name='third_party_api_proxy'),
 ]
