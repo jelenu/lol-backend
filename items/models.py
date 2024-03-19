@@ -7,7 +7,7 @@ class Stat(models.Model):
     name = models.CharField(max_length=255)
 
 class Item(models.Model):
-    identification = models.CharField(max_length=100, unique=True)
+    identification = models.IntegerField(unique=True)
     name = models.CharField(max_length=255)
     description = models.TextField()
     colloq = models.CharField(max_length=255, blank=True)
