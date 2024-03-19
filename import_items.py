@@ -6,7 +6,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lol.settings')
 django.setup()
 
-from items.models import Item, Stat, ItemStat
+from items.models import Item, Stat, ItemStat, Tag  
 
 # Ruta al directorio donde se encuentran las imágenes guardadas
 image_directory = "static/item/"
@@ -76,6 +76,14 @@ for item_id, item_data in data['data'].items():
                 )
                 # Guarda el ItemStat en la base de datos
                 item_stat.save()
+
+            # Itera sobre los tags del item
+            for tag_name in item_data['tags']:
+                # Busca o crea la instancia de Tag
+                tag, created = Tag.objects.get_or_create(name=tag_name)
+                # Asocia el tag con el ítem actual
+                item.tags.add(tag)
+
 
         else:
             print(f"No se guardará el item con identification '{item_id}' porque 'inStore' es false.")

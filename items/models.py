@@ -1,5 +1,8 @@
 from django.db import models
 
+class Tag(models.Model):
+    name = models.CharField(max_length=50)
+
 class Stat(models.Model):
     name = models.CharField(max_length=255)
 
@@ -16,6 +19,7 @@ class Item(models.Model):
     stats = models.ManyToManyField(Stat, through='ItemStat')
     item_from = models.ManyToManyField('self', symmetrical=False, related_name='crafts_into', blank=True)
     item_into = models.ManyToManyField('self', symmetrical=False, related_name='crafts_from', blank=True)
+    tags = models.ManyToManyField(Tag)
 
 class ItemStat(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
