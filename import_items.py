@@ -8,14 +8,14 @@ django.setup()
 
 from items.models import Item, Stat, ItemStat, Tag  
 
-# Ruta al directorio donde se encuentran las imágenes guardadas
+# Path to the directory where saved images are located
 image_directory = "static/item/"
 
-# Lee el JSON
+# Read the JSON
 with open('item.json', 'r') as f:
     data = json.load(f)
 
-# Crear un diccionario para mapear los nombres de las imágenes a los paths completos
+# Create a dictionary to map image names to their full paths
 image_paths = {}
 for item_id, item_data in data['data'].items():
     image_path = os.path.join(image_directory, item_data['image']['full'])
@@ -23,26 +23,26 @@ for item_id, item_data in data['data'].items():
     if os.path.exists(image_path):
         image_paths[item_id] = image_path
 
-# Lista para almacenar los identification de los ítems ya creados
+# List to store the ids of already created items
 created_item_ids = []
 
-# Itera sobre los datos de los items y crea las instancias de Item
+# Iterate over item data and create Item instances
 for item_id, item_data in data['data'].items():
     if item_id in created_item_ids:
-        print(f"Item con identification '{item_id}' ya ha sido creado, omitiendo la creación.")
+        print(f"Item with identification '{item_id}' has already been created, skipping creation.")
         continue
 
-    # Verifica si el mapa 11 es verdadero
+    # Check if map 11 is true
     if item_data.get('maps', {}).get('11', False):
-        # Verifica si la imagen existe en el diccionario de paths
+        # Check if the image exists in the paths dictionary
         image_path = image_paths.get(item_id)
         if not image_path or not os.path.exists(image_path):
-            print(f"La imagen para el item con identification '{item_id}' no existe, omitiendo la creación.")
+            print(f"The image for the item with identification '{item_id}' does not exist, skipping creation.")
             continue
 
-        # Verifica si el campo 'inStore' no está presente o es verdadero
+        # Check if the 'inStore' field is not present or is true
         if 'inStore' not in item_data or item_data['inStore']:
-            # Crea una instancia de Item
+            # Create an instance of Item
             item = Item(
                 identification=item_id,
                 name=item_data['name'],
@@ -57,56 +57,56 @@ for item_id, item_data in data['data'].items():
             with open(image_path, 'rb') as img_file:
                 item.image.save(os.path.basename(image_path), File(img_file))
 
-            # Guarda el identification del ítem creado
+            # Save the id of the created item
             created_item_ids.append(item_id)
 
-            # Guarda el item en la base de datos
+            # Save the item in the database
             item.save()
-            print(f"item {item_id} guardado")
+            print(f"Item {item_id} saved")
 
-            # Itera sobre las estadísticas del item
+            # Iterate over the item's statistics
             for stat_name, stat_value in item_data['stats'].items():
-                # Busca o crea la instancia de Stat
+                # Find or create the Stat instance
                 stat, created = Stat.objects.get_or_create(name=stat_name)
-                # Crea una instancia de ItemStat
+                # Create an instance of ItemStat
                 item_stat = ItemStat(
                     item=item,
                     stat=stat,
                     amount=stat_value
                 )
-                # Guarda el ItemStat en la base de datos
+                # Save the ItemStat in the database
                 item_stat.save()
 
-            # Itera sobre los tags del item
+            # Iterate over the item's tags
             for tag_name in item_data['tags']:
-                # Busca o crea la instancia de Tag
+                # Find or create the Tag instance
                 tag, created = Tag.objects.get_or_create(name=tag_name)
-                # Asocia el tag con el ítem actual
+                # Associate the tag with the current item
                 item.tags.add(tag)
 
 
         else:
-            print(f"No se guardará el item con identification '{item_id}' porque 'inStore' es false.")
+            print(f"The item with identification '{item_id}' will not be saved because 'inStore' is false.")
 
 
-# Itera sobre los datos de los items y crea las relaciones from e into
+# Iterate over item data and create the 'from' and 'into' relationships
 for item_id, item_data in data['data'].items():
     if item_id in created_item_ids:
         item = Item.objects.get(identification=item_id)
-        # Guarda los datos de "from" e "into" si existen
+        # Save the 'from' and 'into' data if they exist
         for related_item_id in item_data.get('from', []):
             related_item = Item.objects.filter(identification=related_item_id).first()
             if related_item:
                 item.item_from.add(related_item)
             else:
-                print(f"No se encontró el item con identification '{related_item_id}', omitiendo la relación.")
+                print(f"The item with identification '{related_item_id}' was not found, skipping the relationship.")
 
         for related_item_id in item_data.get('into', []):
             related_item = Item.objects.filter(identification=related_item_id).first()
             if related_item:
                 item.item_into.add(related_item)
             else:
-                print(f"No se encontró el item con identification '{related_item_id}', omitiendo la relación.")
+                print(f"The item with identification '{related_item_id}' was not found, skipping the relationship.")
 
-        # Guarda los cambios en la relación "from" e "into"
+        # Save changes to the 'from' and 'into' relationships
         item.save()
