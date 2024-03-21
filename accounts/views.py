@@ -31,16 +31,50 @@ class AccountInfo(APIView):
             data = response.json()
             encrypted_puuid = data.get('puuid')
             
-            # Make a call to the Riot API for the second endpoint
-            second_api_url = f'https://{server}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{encrypted_puuid}'
-            second_response = requests.get(second_api_url, headers=headers)
+            # Make a call to the Riot API for the account endpoint
+            account_api_url = f'https://{server}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{encrypted_puuid}'
+            account_response = requests.get(account_api_url, headers=headers)
             
-            # Check if the second API call was successful
-            if second_response.status_code == 200:
-                second_data = second_response.json()
+            # Check if the account API call was successful
+            if account_response.status_code == 200:
+                account_data = account_response.json()
                 
-                return Response(second_data)
+                # Construct the URL for profile icon
+                profile_icon_id = account_data.get('profileIconId')
+                profile_icon_url = f'/static/profileIcon/{profile_icon_id}.png'  # Assuming your static files are served from '/static/'
+
+                # Add profile_icon_url to account_data
+                account_data['profileIconUrl'] = profile_icon_url
+                
+                # Make a call to the Riot API for the match_id endpoint
+                match_id_api_url = f'https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{encrypted_puuid}/ids'
+                match_id_response = requests.get(match_id_api_url, headers=headers)
+                
+                # Check if the match_id API call was successful
+                if match_id_response.status_code == 200:
+                    match_id_data = match_id_response.json()
+                    
+                    # Add match_id_data to account_data
+                    account_data['matchIds'] = match_id_data
+
+                    # Get data for the first 5 match IDs
+                    match_data_list = []
+                    for match_id in match_id_data[:5]:
+                        match_info_api_url = f'https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}'
+                        match_info_response = requests.get(match_info_api_url, headers=headers)
+                        if match_info_response.status_code == 200:
+                            match_info_data = match_info_response.json()
+                            match_data_list.append(match_info_data)
+                        else:
+                            return Response({'error': f'Failed to fetch data from match API call for match ID: {match_id}'}, status=match_info_response.status_code)
+                    
+                    # Add match data list to account_data
+                    account_data['matches'] = match_data_list
+
+                    return Response(account_data)
+                else:
+                    return Response({'error': 'Failed to fetch data from match_id API call'}, status=match_id_response.status_code)
             else:
-                return Response({'error': 'Failed to fetch data from second API call'}, status=second_response.status_code)
+                return Response({'error': 'Failed to fetch data from account API call'}, status=account_response.status_code)
         else:
             return Response({'error': 'Failed to fetch data from first API call'}, status=response.status_code)
