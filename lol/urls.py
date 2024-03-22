@@ -7,7 +7,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/accounts/info/', AccountInfo.as_view(), name='third_party_api_proxy'),
-    path('items/', include('items.urls')),
+    path('api/accounts/', include('accounts.urls')),
+    path('api/items/', include('items.urls')),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
