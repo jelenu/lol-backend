@@ -46,7 +46,23 @@ class AccountInfo(APIView):
                 # Add profile_icon_url to account_data
                 account_data['profileIconUrl'] = profile_icon_url
 
-                return Response(account_data)
+                # Make a call to the Riot API for the league endpoint
+                encrypted_summoner_id = account_data.get('id')
+                league_api_url = f'https://{server}.api.riotgames.com/lol/league/v4/entries/by-summoner/{encrypted_summoner_id}'
+                league_response = requests.get(league_api_url, headers=headers)
+
+                # Check if the league API call was successful
+                if league_response.status_code == 200:
+                    league_data = league_response.json()
+
+                    # Append league_data to account_data
+                    account_data['leagueData'] = league_data
+
+                    # Return account data with league data appended
+                    return Response(account_data)
+                
+                else:
+                    return Response({'error': 'Failed to fetch data from league API call'}, status=league_response.status_code)
             else:
                 return Response({'error': 'Failed to fetch data from account API call'}, status=account_response.status_code)
         else:
