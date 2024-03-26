@@ -6,7 +6,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lol.settings')
 django.setup()
 
-from items.models import Item, Stat, ItemStat, Tag  
+from builds.models import Item, Stat, ItemStat, Tag  
 
 # Path to the directory where saved images are located
 image_directory = "static/item/"
@@ -18,7 +18,7 @@ with open('item.json', 'r') as f:
 # Create a dictionary to map image names to their full paths
 image_paths = {}
 for item_id, item_data in data['data'].items():
-    image_path = os.path.join(image_directory, item_data['image']['full'])
+    image_path = os.path.join(image_directory, f"{item_id}.png")
 
     if os.path.exists(image_path):
         image_paths[item_id] = image_path
@@ -52,10 +52,8 @@ for item_id, item_data in data['data'].items():
                 gold_base=item_data['gold']['base'],
                 gold_total=item_data['gold']['total'],
                 gold_sell=item_data['gold']['sell'],
+                image=image_path
             )
-
-            with open(image_path, 'rb') as img_file:
-                item.image.save(os.path.basename(image_path), File(img_file))
 
             # Save the id of the created item
             created_item_ids.append(item_id)
