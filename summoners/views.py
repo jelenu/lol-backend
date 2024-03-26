@@ -69,41 +69,58 @@ class AccountInfo(APIView):
             return Response({'error': 'Failed to fetch data from first API call'}, status=response.status_code)
 
 
-class MatchInfo(APIView):
-    def get(self, request):
-        # Get queryset parameters from the frontend
-        encrypted_puuid = request.query_params.get('puuid', None)
 
+class MatchId(APIView):
+    def get(self, request):
+        # Get the puuid parameter from the query
+        encrypted_puuid = request.query_params.get('puuid', None)
         # Check if puuid is present
         if not encrypted_puuid:
             return Response({'error': 'puuid is required'}, status=400)
+        
+        # Build the header for the API call
+        headers = {
+            'X-Riot-Token': os.getenv('TOKEN'),
+        }
+
+        # Make the call to the match_id API
+        match_id_api_url = f'https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{encrypted_puuid}/ids?count=100'
+        match_id_response = requests.get(match_id_api_url, headers=headers)
+
+        # Check if the match_id API call was successful
+        if match_id_response.status_code == 200:
+            match_id_data = match_id_response.json()
+            # Return the match IDs
+            return Response( match_id_data)
+        else:
+            return Response({'error': 'Failed to fetch data from match_id API call'}, status=match_id_response.status_code)
+
+class MatchInfo(APIView):
+    def post(self, request):
+        # Obtain List of matches Ids
+        ids = request.data.get('ids', [])
+
+        match_info_list = []
 
         # Build the header for the API call
         headers = {
             'X-Riot-Token': os.getenv('TOKEN'),
         }
 
-        # Make a call to the Riot API for the match_id endpoint
-        match_id_api_url = f'https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{encrypted_puuid}/ids'
-        match_id_response = requests.get(match_id_api_url, headers=headers)
+        # Iterate over each ID in the list
+        for match_id in ids:
+            # Build the API URL for each ID
+            match_info_api_url = f'https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}'
+            
+            # Make the call to the API
+            match_info_response = requests.get(match_info_api_url, headers=headers)
 
-        # Check if the match_id API call was successful
-        if match_id_response.status_code == 200:
-            match_id_data = match_id_response.json()
-
-            # Get data for the first 5 match IDs
-            match_data_list = []
-            for match_id in match_id_data[:5]:
-                match_info_api_url = f'https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}'
-                match_info_response = requests.get(match_info_api_url, headers=headers)
-                if match_info_response.status_code == 200:
-                    match_info_data = match_info_response.json()
-                    match_data_list.append(match_info_data['info'])
-
-                else:
-                    return Response({'error': f'Failed to fetch data from match API call for match ID: {match_id}'}, status=match_info_response.status_code)
-
-            # Return both the list of match IDs and match information
-            return Response({'match_ids': match_id_data, 'matches': match_data_list})
-        else:
-            return Response({'error': 'Failed to fetch data from match_id API call'}, status=match_id_response.status_code)
+            # Check if the API call was successful
+            if match_info_response.status_code == 200:
+                match_info_data = match_info_response.json()
+                match_info_list.append(match_info_data['info'])  # Add match information to the list
+            else:
+                return Response({'error': f'Failed to fetch data from match API call for match ID: {match_id}'}, status=match_info_response.status_code)
+        
+        # Return the list of match information
+        return Response(match_info_list)

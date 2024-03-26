@@ -2,5 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('all/', views.TagStatItemView.as_view(), name='item-list'),
+    path('items/all/', views.TagStatItemView.as_view(), name='item-list'),
+    path('match/runes/', views.TagStatItemView.as_view(), name='item-list'),
+
 ]
