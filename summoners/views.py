@@ -3,7 +3,7 @@ from rest_framework.response import Response
 import requests
 import os
 from dotenv import load_dotenv
-
+from builds.models import RuneSlot
 load_dotenv()
 
 class AccountInfo(APIView):
@@ -95,6 +95,17 @@ class MatchId(APIView):
         else:
             return Response({'error': 'Failed to fetch data from match_id API call'}, status=match_id_response.status_code)
 
+
+def map_rune_id_to_model(rune_id):
+    # Here we assume that rune_id is the ID of the rune
+    # Query the database to get the corresponding RuneSlot model
+    try:
+        rune = RuneSlot.objects.get(id=rune_id)
+        return rune
+    except RuneSlot.DoesNotExist:
+        return None
+
+
 class MatchInfo(APIView):
     def post(self, request):
         # Obtain List of matches Ids
@@ -118,9 +129,28 @@ class MatchInfo(APIView):
             # Check if the API call was successful
             if match_info_response.status_code == 200:
                 match_info_data = match_info_response.json()
+                # Map rune IDs to RuneSlot models
+                for participant in match_info_data['info']['participants']:
+                    # Map style selections
+                    for style in participant['perks']['styles']:
+                        style['selections'] = [self.map_rune_to_dict(selection['perk']) for selection in style['selections']]
                 match_info_list.append(match_info_data['info'])  # Add match information to the list
             else:
                 return Response({'error': f'Failed to fetch data from match API call for match ID: {match_id}'}, status=match_info_response.status_code)
         
         # Return the list of match information
         return Response(match_info_list)
+
+    def map_rune_to_dict(self, rune_id):
+        try:
+            rune = RuneSlot.objects.get(id=rune_id)
+            return {
+                'id': rune.id,
+                'key': rune.key,
+                'icon': rune.icon,
+                'name': rune.name,
+                'slot_number': rune.slot_number,
+                # If you want to include more fields, add them here
+            }
+        except RuneSlot.DoesNotExist:
+            return None

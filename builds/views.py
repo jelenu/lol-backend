@@ -1,7 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Tag, Stat, Item
+from .models import Tag, Stat, Item, RuneSlot
 from .serializers import TagSerializer, StatSerializer, ItemSerializer
+from rest_framework import status
 
 class TagStatItemView(APIView):
     def get(self, request):
