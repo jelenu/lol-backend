@@ -96,16 +96,6 @@ class MatchId(APIView):
             return Response({'error': 'Failed to fetch data from match_id API call'}, status=match_id_response.status_code)
 
 
-def map_rune_id_to_model(rune_id):
-    # Here we assume that rune_id is the ID of the rune
-    # Query the database to get the corresponding RuneSlot model
-    try:
-        rune = RuneSlot.objects.get(id=rune_id)
-        return rune
-    except RuneSlot.DoesNotExist:
-        return None
-
-
 class MatchInfo(APIView):
     def post(self, request):
         # Obtain List of matches Ids
@@ -143,14 +133,48 @@ class MatchInfo(APIView):
 
     def map_rune_to_dict(self, rune_id):
         try:
-            rune = RuneSlot.objects.get(id=rune_id)
+            rune_slot = RuneSlot.objects.get(id=rune_id)
+            rune_path = rune_slot.rune_path  # Get the RunePath related to the RuneSlot
             return {
-                'id': rune.id,
-                'key': rune.key,
-                'icon': rune.icon,
-                'name': rune.name,
-                'slot_number': rune.slot_number,
-                # If you want to include more fields, add them here
+                'id': rune_slot.id,
+                'key': rune_slot.key,
+                'icon': rune_slot.icon,
+                'name': rune_slot.name,
+                'slot_number': rune_slot.slot_number,
+                'rune_path': {  # Include RunePath information
+                    'id': rune_path.id,
+                    'key': rune_path.key,
+                    'icon': rune_path.icon,
+                    'name': rune_path.name,
+                }
             }
         except RuneSlot.DoesNotExist:
             return None
+
+
+class MatchTimeLine(APIView):
+    def get(self, request):
+        # Get the matchId parameter from the query
+        match_id = request.query_params.get('matchId', None)
+        server = request.query_params.get('server', None)
+
+        # Check if matchId is present
+        if not match_id:
+            return Response({'error': 'matchId is required'}, status=400)
+        
+        # Build the header for the API call
+        headers = {
+            'X-Riot-Token': os.getenv('TOKEN'),
+        }
+
+        # Make the call to the timeline API using matchId
+        timeline_api_url = f'https://europe.api.riotgames.com/lol/match/v5/matches/{server}_{match_id}/timeline'
+        timeline_response = requests.get(timeline_api_url, headers=headers)
+
+        # Check if the timeline API call was successful
+        if timeline_response.status_code == 200:
+            timeline_data = timeline_response.json()
+            # Return the timeline data
+            return Response(timeline_data)
+        else:
+            return Response({'error': 'Failed to fetch data from timeline API call'}, status=timeline_response.status_code)
