@@ -12,7 +12,7 @@ class AccountInfo(APIView):
         game_name = request.query_params.get('gameName', None)
         tagline = request.query_params.get('tagLine', None)
         server = request.query_params.get('server', None)
-
+        main_server = request.query_params.get('mainServer', None)
         # Check if gameName and tagline are present
         if not (game_name and tagline):
             return Response({'error': 'gameName and tagline are required'}, status=400)
@@ -23,7 +23,7 @@ class AccountInfo(APIView):
         }
 
         # Make a call to the Riot API for the first endpoint
-        api_url = f'https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tagline}'
+        api_url = f'https://{main_server}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tagline}'
         response = requests.get(api_url, headers=headers)
 
         # Check if the API call was successful
@@ -74,6 +74,8 @@ class MatchId(APIView):
     def get(self, request):
         # Get the puuid parameter from the query
         encrypted_puuid = request.query_params.get('puuid', None)
+        main_server = request.query_params.get('mainServer', None)
+
         # Check if puuid is present
         if not encrypted_puuid:
             return Response({'error': 'puuid is required'}, status=400)
@@ -84,7 +86,7 @@ class MatchId(APIView):
         }
 
         # Make the call to the match_id API
-        match_id_api_url = f'https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{encrypted_puuid}/ids?count=100'
+        match_id_api_url = f'https://{main_server}.api.riotgames.com/lol/match/v5/matches/by-puuid/{encrypted_puuid}/ids?count=100'
         match_id_response = requests.get(match_id_api_url, headers=headers)
 
         # Check if the match_id API call was successful
@@ -100,6 +102,8 @@ class MatchInfo(APIView):
     def post(self, request):
         # Obtain List of matches Ids
         ids = request.data.get('ids', [])
+        main_server = request.data.get('mainServer')
+
 
         match_info_list = []
 
@@ -111,7 +115,7 @@ class MatchInfo(APIView):
         # Iterate over each ID in the list
         for match_id in ids:
             # Build the API URL for each ID
-            match_info_api_url = f'https://europe.api.riotgames.com/lol/match/v5/matches/{match_id}'
+            match_info_api_url = f'https://{main_server}.api.riotgames.com/lol/match/v5/matches/{match_id}'
             
             # Make the call to the API
             match_info_response = requests.get(match_info_api_url, headers=headers)
@@ -157,6 +161,8 @@ class MatchTimeLine(APIView):
         # Get the matchId parameter from the query
         match_id = request.query_params.get('matchId', None)
         server = request.query_params.get('server', None)
+        main_server = request.query_params.get('mainServer', None)
+
 
         # Check if matchId is present
         if not match_id:
@@ -168,7 +174,7 @@ class MatchTimeLine(APIView):
         }
 
         # Make the call to the timeline API using matchId
-        timeline_api_url = f'https://europe.api.riotgames.com/lol/match/v5/matches/{server}_{match_id}/timeline'
+        timeline_api_url = f'https://{main_server}.api.riotgames.com/lol/match/v5/matches/{server}_{match_id}/timeline'
         timeline_response = requests.get(timeline_api_url, headers=headers)
 
         # Check if the timeline API call was successful
