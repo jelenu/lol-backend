@@ -41,7 +41,7 @@ class AccountInfo(APIView):
 
                 # Construct the URL for profile icon
                 profile_icon_id = account_data.get('profileIconId')
-                profile_icon_url = f'/static/profileIcon/{profile_icon_id}.png'  # Assuming your static files are served from '/static/'
+                profile_icon_url = f'/static/profileIcon/{profile_icon_id}.png'
 
                 # Add profile_icon_url to account_data
                 account_data['profileIconUrl'] = profile_icon_url

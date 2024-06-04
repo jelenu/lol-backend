@@ -35,6 +35,7 @@ INSTALLED_APPS = [
 
     'summoners',
     'builds',
+    'users',
 
 ]
 
