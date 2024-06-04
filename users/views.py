@@ -6,6 +6,8 @@ import os
 from dotenv import load_dotenv
 from .models import LinkedAccount
 from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
+from .serializers import LinkedAccountSerializer
 
 load_dotenv()
 
@@ -155,3 +157,19 @@ class VerifyAccount(APIView):
                 return Response({'error': 'Failed to fetch data from account API call'}, status=account_response.status_code)
         else:
             return Response({'error': 'Failed to fetch data from first API call'}, status=response.status_code)
+
+
+
+
+
+class GetVerifiedAccounts(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not user.is_authenticated:
+            return Response({'error': 'User is not authenticated'}, status=401)
+
+        verified_accounts = LinkedAccount.objects.filter(user=user)
+        serializer = LinkedAccountSerializer(verified_accounts, many=True)
+        return Response(serializer.data)
