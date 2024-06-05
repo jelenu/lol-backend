@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from .models import LinkedAccount, FollowSummoner
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
-from .serializers import LinkedAccountSerializer
+from .serializers import LinkedAccountSerializer, FollowSummonerSerializer
 
 load_dotenv()
 
@@ -211,3 +211,16 @@ class FollowSummonerView(APIView):
             )
 
             return Response({'Follow': True})
+
+
+class GetFollowedSummonersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not user.is_authenticated:
+            return Response({'error': 'User is not authenticated'}, status=401)
+
+        followed_summoners = FollowSummoner.objects.filter(user=user)
+        serializer = FollowSummonerSerializer(followed_summoners, many=True)
+        return Response(serializer.data)
