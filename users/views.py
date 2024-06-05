@@ -4,14 +4,14 @@ import requests
 import random
 import os
 from dotenv import load_dotenv
-from .models import LinkedAccount
+from .models import LinkedAccount, FollowSummoner
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from .serializers import LinkedAccountSerializer
 
 load_dotenv()
 
-class LinkAccount(APIView):
+class LinkAccountView(APIView):
     def get(self, request):
         # Check if user is authenticated
         user = request.user
@@ -95,7 +95,7 @@ class LinkAccount(APIView):
             return Response({'error': 'the summoner does not exist'}, status=response.status_code)
 
 
-class VerifyAccount(APIView):
+class VerifyAccountView(APIView):
     def get(self, request):
         # Check if user is authenticated
         user = request.user
@@ -160,9 +160,7 @@ class VerifyAccount(APIView):
 
 
 
-
-
-class GetVerifiedAccounts(APIView):
+class GetVerifiedAccountsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -173,3 +171,43 @@ class GetVerifiedAccounts(APIView):
         verified_accounts = LinkedAccount.objects.filter(user=user)
         serializer = LinkedAccountSerializer(verified_accounts, many=True)
         return Response(serializer.data)
+    
+
+class FollowSummonerView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not user.is_authenticated:
+            return Response({'error': 'User is not authenticated'}, status=401)
+
+        # Get queryset parameters from the frontend
+        game_name = request.query_params.get('gameName', None)
+        tagline = request.query_params.get('tagLine', None)
+        server = request.query_params.get('server', None)
+        main_server = request.query_params.get('mainServer', None)
+        # Check if gameName and tagline are present
+        if not (game_name and tagline):
+            return Response({'error': 'gameName and tagline are required'}, status=400)
+
+        try:
+            FollowSummoner.objects.get(
+                game_name=game_name,
+                tagline=tagline,
+                server=server,
+                main_server=main_server,
+                user=user,
+            ).delete()
+            
+            return Response({'Follow': False})
+
+        except:
+            FollowSummoner.objects.create(
+                game_name=game_name,
+                tagline=tagline,
+                server=server,
+                main_server=main_server,
+                user=user,
+            )
+
+            return Response({'Follow': True})

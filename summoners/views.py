@@ -4,9 +4,10 @@ import requests
 import os
 from dotenv import load_dotenv
 from builds.models import RuneSlot
+from users.models import FollowSummoner
 load_dotenv()
 
-class AccountInfo(APIView):
+class AccountInfoView(APIView):
     def get(self, request):
         # Get queryset parameters from the frontend
         game_name = request.query_params.get('gameName', None)
@@ -58,6 +59,17 @@ class AccountInfo(APIView):
                     # Append league_data to account_data
                     account_data['leagueData'] = league_data
 
+                    if request.user.is_authenticated:
+                        # Check if the user follows this summoner
+                        try:
+                            FollowSummoner.objects.get(user=request.user, game_name=game_name, tagline=tagline, server=server, main_server=main_server)
+                            account_data['is_following'] = True
+                        except FollowSummoner.DoesNotExist:
+                            account_data['is_following'] = False
+                    
+                    else:
+                        account_data['is_following'] = False
+
                     # Return account data with league data appended
                     return Response(account_data)
                 
@@ -70,7 +82,7 @@ class AccountInfo(APIView):
 
 
 
-class MatchId(APIView):
+class MatchIdView(APIView):
     def get(self, request):
         # Get the puuid parameter from the query
         encrypted_puuid = request.query_params.get('puuid', None)
@@ -98,7 +110,7 @@ class MatchId(APIView):
             return Response({'error': 'Failed to fetch data from match_id API call'}, status=match_id_response.status_code)
 
 
-class MatchInfo(APIView):
+class MatchInfoView(APIView):
     def post(self, request):
         # Obtain List of matches Ids
         ids = request.data.get('ids', [])
@@ -156,7 +168,7 @@ class MatchInfo(APIView):
             return None
 
 
-class MatchTimeLine(APIView):
+class MatchTimeLineView(APIView):
     def get(self, request):
         # Get the matchId parameter from the query
         match_id = request.query_params.get('matchId', None)
