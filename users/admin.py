@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import LinkedAccount, FollowSummoner
+from .models import LinkedAccount, FollowSummoner, FriendRequest
 
 @admin.register(LinkedAccount)
 class LinkedAccountAdmin(admin.ModelAdmin):
@@ -9,3 +9,8 @@ class LinkedAccountAdmin(admin.ModelAdmin):
 @admin.register(FollowSummoner)
 class FollowSummonerAdmin(admin.ModelAdmin):
     list_display = ('user', 'game_name', 'tagline', 'server')
+    
+
+@admin.register(FriendRequest)
+class FriendRequestAdmin(admin.ModelAdmin):
+    list_display = ('sender', 'receiver', 'accepted')

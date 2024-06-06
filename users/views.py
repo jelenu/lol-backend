@@ -4,10 +4,12 @@ import requests
 import random
 import os
 from dotenv import load_dotenv
-from .models import LinkedAccount, FollowSummoner
+from .models import LinkedAccount, FollowSummoner, FriendRequest
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
-from .serializers import LinkedAccountSerializer, FollowSummonerSerializer
+from .serializers import LinkedAccountSerializer, FollowSummonerSerializer, FriendRequestSerializer
+from django.contrib.auth.models import User
+
 
 load_dotenv()
 
@@ -224,3 +226,119 @@ class GetFollowedSummonersView(APIView):
         followed_summoners = FollowSummoner.objects.filter(user=user)
         serializer = FollowSummonerSerializer(followed_summoners, many=True)
         return Response(serializer.data)
+    
+
+
+
+class FriendRequestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        sender = request.user
+        receiver_username = request.data.get('receiver_username')
+        if not receiver_username:
+            return Response({'error': 'receiver username is required'}, status=400)
+
+        try:
+            receiver = User.objects.get(username=receiver_username)
+        except User.DoesNotExist:
+            return Response({'error': 'Receiver not found'}, status=404)
+
+        if sender == receiver:
+            return Response({'error': 'You cannot send a friend request to yourself'}, status=404)
+
+        # Check if a friend request already exists
+        existing_request_sent = FriendRequest.objects.filter(sender=sender, receiver=receiver).first()
+        existing_request_received = FriendRequest.objects.filter(sender=receiver, receiver=sender).first()
+        
+        
+
+
+        if existing_request_sent or existing_request_received:
+            if (existing_request_sent and existing_request_sent.accepted) or (existing_request_received and existing_request_received.accepted):
+                return Response({'error': 'You are already friends with this user'}, status=404)
+            else:
+                return Response({'error': 'Friend request already sent or received'}, status=404)
+
+        friend_request = FriendRequest.objects.create(sender=sender, receiver=receiver)
+        serializer = FriendRequestSerializer(friend_request)
+        return Response(serializer.data, status=201)
+
+
+
+class FriendRequestRecivedView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        receiver = request.user
+        sender_username = request.data.get('sender_username')
+        if not sender_username:
+            return Response({'error': 'receiver username is required'}, status=400)
+
+        try:
+            sender = User.objects.get(username=sender_username)
+        except User.DoesNotExist:
+            return Response({'error': 'sender not found'}, status=404)
+
+        if receiver == sender:
+            return Response({'error': 'You cannot send a friend request to yourself'}, status=404)
+
+        # Check if a friend request  exists
+        existing_request = FriendRequest.objects.filter(receiver=receiver, sender=sender).first()
+        if existing_request:
+            # Update the friend request to accepted
+            existing_request.accepted = True
+            existing_request.save()
+            serializer = FriendRequestSerializer(existing_request)
+            return Response(serializer.data, status=200)
+
+        else:
+            return Response({'error': 'Friend request Dosnt exist'}, status=400)
+
+
+    def delete(self, request):
+        receiver = request.user
+        sender_username = request.data.get('sender_username')
+        if not sender_username:
+            return Response({'error': 'sender_username is required'}, status=400)
+
+        try:
+            sender = User.objects.get(username=sender_username)
+        except User.DoesNotExist:
+            return Response({'error': 'sender not found'}, status=404)
+
+        # Check if the friend request exists
+        friend_request = FriendRequest.objects.filter(receiver=receiver, sender=sender).first()
+        if not friend_request:
+            return Response({'error': 'Friend request not found'}, status=404)
+
+        friend_request.delete()
+        return Response({'message': 'Friend request deleted'}, status=204)
+
+
+class FriendRequestsListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        received_requests = FriendRequest.objects.filter(receiver=user, accepted=False)
+        sent_requests = FriendRequest.objects.filter(sender=user, accepted=False)
+        received_serializer = FriendRequestSerializer(received_requests, many=True)
+        sent_serializer = FriendRequestSerializer(sent_requests, many=True)
+        return Response({'received_requests': received_serializer.data, 'sent_requests': sent_serializer.data})
+    
+
+class FriendsListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        friends_received = FriendRequest.objects.filter(receiver=user, accepted=True)
+        friends_sent = FriendRequest.objects.filter(sender=user, accepted=True)
+        
+        friends_received_usernames = [friend_request.sender.username for friend_request in friends_received]
+        friends_sent_usernames = [friend_request.receiver.username for friend_request in friends_sent]
+
+        all_friends_usernames = set(friends_received_usernames + friends_sent_usernames)
+
+        return Response(list(all_friends_usernames))
