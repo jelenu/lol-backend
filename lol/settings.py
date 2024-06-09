@@ -22,6 +22,8 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -32,6 +34,10 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'djoser',
+
+    'channels',
+    'chat',
+
 
     'summoners',
     'builds',
@@ -82,6 +88,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'lol.wsgi.application'
+ASGI_APPLICATION = 'lol.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('135.125.107.195', 6379)],
+        },
+    },
+}
+
 
 
 # Database
